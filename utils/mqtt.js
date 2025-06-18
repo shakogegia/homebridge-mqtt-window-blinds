@@ -57,15 +57,14 @@ async function publishMessage(command) {
         clientId: config.clientId
     };
 
-    const topic = `${config.topicPrefix}/${command.toLowerCase()}`;
     
     return new Promise((resolve, reject) => {
-        client.publish(topic, JSON.stringify(message), { qos: 1 }, (error) => {
+        client.publish(command, JSON.stringify(message), { qos: 1 }, (error) => {
             if (error) {
                 console.error('Error publishing message:', error);
                 reject(error);
             } else {
-                console.log(`Published to ${topic}:`, message);
+                console.log(`Published to ${command}:`, message);
                 resolve();
             }
         });

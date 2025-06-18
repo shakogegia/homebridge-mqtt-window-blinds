@@ -151,8 +151,19 @@ class WindowBlindsAccessory {
         }
     }
     
+    // Required methods for Homebridge compatibility
+    getServices() {
+        return this.accessory.getServices();
+    }
+    
     getAccessory() {
         return this.accessory;
+    }
+    
+    // Optional: Add identify method for HomeKit pairing
+    identify(callback) {
+        this.log(`Identify requested for ${this.name}`);
+        callback();
     }
 }
 

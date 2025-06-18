@@ -1,0 +1,34 @@
+{
+  "name": "homebridge-mqtt-window-blinds",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "start": "node app.js",
+    "dev": "nodemon app.js",
+    "test": "node test-plugin.js",
+    "test:plugin": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "homebridge-plugin",
+    "mqtt",
+    "esp8266",
+    "blinds",
+    "iot",
+    "homekit"
+  ],
+  "author": "",
+  "license": "ISC",
+  "description": "Homebridge plugin for MQTT-controlled window blinds",
+  "engines": {
+    "homebridge": ">=1.0.0"
+  },
+  "dependencies": {
+    "dotenv": "^16.5.0",
+    "mqtt": "^5.3.5",
+    "readline": "^1.3.0",
+    "hap-nodejs": "^0.10.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  }
+}

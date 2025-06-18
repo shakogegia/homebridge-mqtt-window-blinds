@@ -1,0 +1,28 @@
+{
+  "bridge": {
+    "name": "Homebridge",
+    "username": "CC:22:3D:E3:CE:30",
+    "port": 51826,
+    "pin": "031-45-154"
+  },
+  "accessories": [
+    {
+      "accessory": "WindowBlinds",
+      "name": "Living Room Blinds",
+      "manufacturer": "Custom",
+      "model": "MQTT Blinds",
+      "serialNumber": "BLINDS001",
+      "mqtt": {
+        "host": "192.168.1.100",
+        "port": 1883,
+        "topicPrefix": "blinds",
+        "username": "your_mqtt_username",
+        "password": "your_mqtt_password",
+        "clientId": "blinds_BLINDS001"
+      },
+      "initialPosition": 70,
+      "travelTime": 30000
+    }
+  ],
+  "platforms": []
+} 

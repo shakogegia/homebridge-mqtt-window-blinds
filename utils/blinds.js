@@ -110,19 +110,22 @@ async function setPosition(position) {
             await debouncedDown();
         }
         
-        // Wait for the calculated travel time
-        await new Promise(resolve => setTimeout(resolve, travelTime));
-        
-        // Only send stop command if not going to full closed (0%) or full open (100%)
-        if (targetPosition !== 0 && targetPosition !== 100) {
-            await publishMessage(commands.STOP);
-            console.log('Sent stop command');
-        } else {
-            console.log(`No stop command sent for ${targetPosition === 0 ? 'full closed' : 'full open'}`);
-        }
-
-        // Update the current position
+        // Update the target position immediately
         state.setCurrentPosition(targetPosition);
+        
+        // Schedule the stop command after travel time (if needed)
+        if (targetPosition !== 0 && targetPosition !== 100) {
+            setTimeout(async () => {
+                try {
+                    await publishMessage(commands.STOP);
+                    console.log('Sent stop command after travel time');
+                } catch (error) {
+                    console.error('Error sending stop command:', error);
+                }
+            }, travelTime);
+        } else {
+            console.log(`No stop command scheduled for ${targetPosition === 0 ? 'full closed' : 'full open'}`);
+        }
         
         console.log(`Window position set to ${targetPosition}%`);
     } catch (error) {

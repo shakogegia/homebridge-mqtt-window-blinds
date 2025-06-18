@@ -16,6 +16,15 @@ class WindowBlindsAccessory {
         // Track movement state for HomeKit
         this.isMoving = false;
         this.movementDirection = null;
+        this.targetPosition = null;
+        this.startPosition = null;
+        this.movementStartTime = null;
+        
+        // Store service references for faster updates
+        this.windowCoveringService = null;
+        this.targetPositionCharacteristic = null;
+        this.currentPositionCharacteristic = null;
+        this.positionStateCharacteristic = null;
         
         // Validate required configuration
         this.validateConfig(config);
@@ -81,30 +90,33 @@ class WindowBlindsAccessory {
         services.push(accessoryInfo);
         
         // Window Covering Service
-        const windowCoveringService = new Service.WindowCovering(this.name);
+        this.windowCoveringService = new Service.WindowCovering(this.name);
         
-        // Target Position (0-100, where 0 is fully open, 100 is fully closed)
-        windowCoveringService
-            .getCharacteristic(Characteristic.TargetPosition)
+        // Target Position (0-100, where 0 is fully closed, 100 is fully open)
+        this.targetPositionCharacteristic = this.windowCoveringService
+            .getCharacteristic(Characteristic.TargetPosition);
+        this.targetPositionCharacteristic
             .on('set', this.setTargetPosition.bind(this))
             .on('get', this.getTargetPosition.bind(this));
         
         // Current Position
-        windowCoveringService
-            .getCharacteristic(Characteristic.CurrentPosition)
+        this.currentPositionCharacteristic = this.windowCoveringService
+            .getCharacteristic(Characteristic.CurrentPosition);
+        this.currentPositionCharacteristic
             .on('get', this.getCurrentPosition.bind(this));
         
         // Position State
-        windowCoveringService
-            .getCharacteristic(Characteristic.PositionState)
+        this.positionStateCharacteristic = this.windowCoveringService
+            .getCharacteristic(Characteristic.PositionState);
+        this.positionStateCharacteristic
             .on('get', this.getPositionState.bind(this));
         
         // Hold Position (optional - allows stopping)
-        windowCoveringService
+        this.windowCoveringService
             .getCharacteristic(Characteristic.HoldPosition)
             .on('set', this.setHoldPosition.bind(this));
         
-        services.push(windowCoveringService);
+        services.push(this.windowCoveringService);
         
         return services;
     }
@@ -113,12 +125,20 @@ class WindowBlindsAccessory {
         try {
             this.log(`Setting blinds to position: ${value}%`);
             
+            // Store movement parameters
+            this.targetPosition = value;
+            this.startPosition = state.getCurrentPosition();
+            this.movementStartTime = Date.now();
+            
             // Set movement state (0 = closed, 100 = open)
             this.isMoving = true;
-            this.movementDirection = value > state.getCurrentPosition() ? 'up' : 'down';
+            this.movementDirection = value > this.startPosition ? 'up' : 'down';
             
-            // Update position state characteristic to show loading
-            this.updatePositionState();
+            // Immediately update HomeKit state
+            this.updateHomeKitState();
+            
+            // Start progressive position updates
+            this.startProgressiveUpdates();
             
             // Use reversed position system (0 = fully closed, 100 = fully open)
             await setPosition(value);
@@ -126,9 +146,12 @@ class WindowBlindsAccessory {
             // Clear movement state
             this.isMoving = false;
             this.movementDirection = null;
+            this.targetPosition = null;
+            this.startPosition = null;
+            this.movementStartTime = null;
             
-            // Update position state characteristic
-            this.updatePositionState();
+            // Final state update
+            this.updateHomeKitState();
             
             callback(null);
         } catch (error) {
@@ -137,21 +160,81 @@ class WindowBlindsAccessory {
             // Clear movement state on error
             this.isMoving = false;
             this.movementDirection = null;
-            this.updatePositionState();
+            this.targetPosition = null;
+            this.startPosition = null;
+            this.movementStartTime = null;
+            this.updateHomeKitState();
             
             callback(error);
         }
     }
     
+    startProgressiveUpdates() {
+        if (!this.isMoving || !this.targetPosition || !this.startPosition || !this.movementStartTime) {
+            return;
+        }
+        
+        const updateInterval = 500; // Update every 500ms
+        const totalTravelTime = this.movementDirection === 'up' ? 
+            this.config.travelTimeUp || 30000 : 
+            this.config.travelTimeDown || 30000;
+        
+        const progressInterval = setInterval(() => {
+            if (!this.isMoving) {
+                clearInterval(progressInterval);
+                return;
+            }
+            
+            const elapsed = Date.now() - this.movementStartTime;
+            const progress = Math.min(elapsed / totalTravelTime, 1);
+            
+            // Calculate current position based on progress
+            const currentPosition = Math.round(
+                this.startPosition + (this.targetPosition - this.startPosition) * progress
+            );
+            
+            // Update state with calculated position
+            state.setCurrentPosition(currentPosition);
+            
+            // Update HomeKit immediately
+            this.updateHomeKitState();
+            
+            // Stop updates if movement is complete
+            if (progress >= 1) {
+                clearInterval(progressInterval);
+            }
+        }, updateInterval);
+    }
+    
+    updateHomeKitState() {
+        if (!this.targetPositionCharacteristic || !this.currentPositionCharacteristic || !this.positionStateCharacteristic) {
+            return;
+        }
+        
+        const currentPosition = state.getCurrentPosition();
+        
+        // Update characteristics immediately
+        this.targetPositionCharacteristic.updateValue(currentPosition);
+        this.currentPositionCharacteristic.updateValue(currentPosition);
+        
+        if (this.isMoving) {
+            if (this.movementDirection === 'up') {
+                this.positionStateCharacteristic.updateValue(Characteristic.PositionState.OPENING);
+            } else {
+                this.positionStateCharacteristic.updateValue(Characteristic.PositionState.CLOSING);
+            }
+        } else {
+            this.positionStateCharacteristic.updateValue(Characteristic.PositionState.STOPPED);
+        }
+    }
+    
     getTargetPosition(callback) {
-        // Use HomeKit position directly
         const homekitPosition = state.getCurrentPosition();
         this.log(`Getting target position: ${homekitPosition}%`);
         callback(null, homekitPosition);
     }
     
     getCurrentPosition(callback) {
-        // Use HomeKit position directly
         const homekitPosition = state.getCurrentPosition();
         this.log(`Getting current position: ${homekitPosition}%`);
         callback(null, homekitPosition);
@@ -169,26 +252,6 @@ class WindowBlindsAccessory {
         }
     }
     
-    updatePositionState() {
-        // Update the position state characteristic to reflect current movement
-        const windowCoveringService = this.getServices().find(service => 
-            service instanceof Service.WindowCovering
-        );
-        
-        if (windowCoveringService) {
-            const positionState = windowCoveringService.getCharacteristic(Characteristic.PositionState);
-            if (this.isMoving) {
-                if (this.movementDirection === 'up') {
-                    positionState.updateValue(Characteristic.PositionState.OPENING);
-                } else {
-                    positionState.updateValue(Characteristic.PositionState.CLOSING);
-                }
-            } else {
-                positionState.updateValue(Characteristic.PositionState.STOPPED);
-            }
-        }
-    }
-    
     async setHoldPosition(value, callback) {
         try {
             if (value) {
@@ -198,7 +261,10 @@ class WindowBlindsAccessory {
                 // Clear movement state
                 this.isMoving = false;
                 this.movementDirection = null;
-                this.updatePositionState();
+                this.targetPosition = null;
+                this.startPosition = null;
+                this.movementStartTime = null;
+                this.updateHomeKitState();
             }
             callback(null);
         } catch (error) {

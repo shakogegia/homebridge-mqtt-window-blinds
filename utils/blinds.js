@@ -1,15 +1,18 @@
 const { createCommands } = require("./constants");
 const state = require("./state");
 const { initializeMqtt, publishMessage } = require("./mqtt");
-const { debounce } = require("lodash");
 
 let commands = null;
 let isInitialized = false;
-let debouncedUp = null;
-let debouncedDown = null;
 let debounceTime = 1000; // Default 1 second
 let travelTimeUp = 30000; // Default 30 seconds for up
 let travelTimeDown = 30000; // Default 30 seconds for down
+
+// Debounce tracking variables
+let upTimeout = null;
+let downTimeout = null;
+let lastUpCall = 0;
+let lastDownCall = 0;
 
 function initializeBlinds(config) {
     if (isInitialized) {
@@ -29,19 +32,47 @@ function initializeBlinds(config) {
     travelTimeUp = config.travelTimeUp || 30000;
     travelTimeDown = config.travelTimeDown || 30000;
     
-    // Create debounced functions
-    debouncedUp = debounce(async () => {
-        await publishMessage(commands.UP);
-    }, debounceTime);
-    
-    debouncedDown = debounce(async () => {
-        await publishMessage(commands.DOWN);
-    }, debounceTime);
-    
     // Create commands using the full config
     commands = createCommands(config);
     
     isInitialized = true;
+}
+
+// Custom debounce function that ensures latest call is executed
+async function debouncedUp() {
+    const now = Date.now();
+    lastUpCall = now;
+    
+    // Clear existing timeout
+    if (upTimeout) {
+        clearTimeout(upTimeout);
+    }
+    
+    // Set new timeout
+    upTimeout = setTimeout(async () => {
+        // Only execute if this is still the latest call
+        if (lastUpCall === now) {
+            await publishMessage(commands.UP);
+        }
+    }, debounceTime);
+}
+
+async function debouncedDown() {
+    const now = Date.now();
+    lastDownCall = now;
+    
+    // Clear existing timeout
+    if (downTimeout) {
+        clearTimeout(downTimeout);
+    }
+    
+    // Set new timeout
+    downTimeout = setTimeout(async () => {
+        // Only execute if this is still the latest call
+        if (lastDownCall === now) {
+            await publishMessage(commands.DOWN);
+        }
+    }, debounceTime);
 }
 
 async function open() {

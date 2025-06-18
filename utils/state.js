@@ -1,7 +1,7 @@
-let CURRENT_POSITION = 70;
-let TOTAL_TRAVEL_TIME = 30000; // Default 30 seconds
+let CURRENT_POSITION = 0;
+let TOTAL_TRAVEL_TIME = 17000; // Default 30 seconds
 
-function initializeState(initialPosition = 70, travelTime = 30000) {
+function initializeState(initialPosition = 0, travelTime = 30000) {
     CURRENT_POSITION = initialPosition;
     TOTAL_TRAVEL_TIME = travelTime;
 }

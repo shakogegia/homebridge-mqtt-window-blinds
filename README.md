@@ -60,7 +60,7 @@ npm link
         "password": "your_mqtt_password",
         "clientId": "blinds_BLINDS001"
       },
-      "initialPosition": 70,
+      "initialPosition": 0,
       "travelTime": 30000
     }
   ],
@@ -86,7 +86,7 @@ npm link
 | `downCommand` | string | No | "down" | MQTT topic for down command |
 | `stopCommand` | string | No | "stop" | MQTT topic for stop command |
 | `saveCommand` | string | No | "save" | MQTT topic for save command |
-| `initialPosition` | number | No | 70 | Initial blinds position (0-100) |
+| `initialPosition` | number | No | 0 | Initial blinds position (0-100) |
 | `travelTime` | number | No | 30000 | Travel time in milliseconds |
 | `debounceTime` | number | No | 1000 | Debounce time in milliseconds (prevents rapid commands) |
 
@@ -113,6 +113,7 @@ The plugin publishes to the following MQTT topics based on your configuration:
 
 The plugin includes a debouncing mechanism to prevent rapid command execution that could damage your blinds or cause erratic behavior:
 
+- **Lodash debounce**: Uses lodash's proven debounce implementation
 - **Default debounce time**: 1 second (1000ms)
 - **Configurable**: Set `debounceTime` in milliseconds
 - **Safety feature**: Stop commands are not debounced for immediate response
@@ -130,6 +131,35 @@ The plugin includes a debouncing mechanism to prevent rapid command execution th
   "debounceTime": 2000  // 2 second debounce
 }
 ```
+
+### HomeKit Loading States
+
+The plugin provides real-time feedback to HomeKit about blinds movement:
+
+- **Opening state**: Shows loading indicator when blinds are opening
+- **Closing state**: Shows loading indicator when blinds are closing
+- **Stopped state**: Shows when blinds are stationary
+- **Real-time updates**: Position state updates automatically during movement
+
+**HomeKit Integration:**
+- Position slider shows current movement state
+- Loading indicators appear during operation
+- Immediate feedback for user actions
+- Proper state management for automations
+
+### Position System
+
+The plugin uses HomeKit's standard position system:
+
+- **0%**: Fully open (blinds completely open)
+- **100%**: Fully closed (blinds completely closed)
+- **Direct mapping**: No position conversion required
+- **Consistent behavior**: Matches HomeKit's expected values
+
+**Position Examples:**
+- `0%` = Blinds fully open
+- `50%` = Blinds half open/half closed
+- `100%` = Blinds fully closed
 
 ### Position Optimization
 

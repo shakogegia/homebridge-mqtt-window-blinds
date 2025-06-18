@@ -57,7 +57,7 @@ class WindowBlindsAccessory {
             downCommand: config.downCommand || 'down',
             stopCommand: config.stopCommand || 'stop',
             saveCommand: config.saveCommand || 'save',
-            initialPosition: config.initialPosition || 70,
+            initialPosition: config.initialPosition || 0,
             travelTime: config.travelTime || 30000,
             debounceTime: config.debounceTime || 1000
         };
@@ -114,17 +114,13 @@ class WindowBlindsAccessory {
             
             // Set movement state
             this.isMoving = true;
-            this.movementDirection = value > (100 - state.getCurrentPosition()) ? 'down' : 'up';
+            this.movementDirection = value > state.getCurrentPosition() ? 'down' : 'up';
             
             // Update position state characteristic to show loading
             this.updatePositionState();
             
-            // Convert HomeKit position (0-100) to our system
-            // HomeKit: 0 = fully open, 100 = fully closed
-            // Our system: 0 = fully closed, 100 = fully open
-            const targetPosition = 100 - value;
-            
-            await setPosition(targetPosition);
+            // Use HomeKit position directly (0 = fully open, 100 = fully closed)
+            await setPosition(value);
             
             // Clear movement state
             this.isMoving = false;
@@ -147,15 +143,15 @@ class WindowBlindsAccessory {
     }
     
     getTargetPosition(callback) {
-        // Convert our position to HomeKit format
-        const homekitPosition = 100 - state.getCurrentPosition();
+        // Use HomeKit position directly
+        const homekitPosition = state.getCurrentPosition();
         this.log(`Getting target position: ${homekitPosition}%`);
         callback(null, homekitPosition);
     }
     
     getCurrentPosition(callback) {
-        // Convert our position to HomeKit format
-        const homekitPosition = 100 - state.getCurrentPosition();
+        // Use HomeKit position directly
+        const homekitPosition = state.getCurrentPosition();
         this.log(`Getting current position: ${homekitPosition}%`);
         callback(null, homekitPosition);
     }

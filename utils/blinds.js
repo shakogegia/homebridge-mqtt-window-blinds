@@ -17,8 +17,8 @@ function initializeBlinds(config) {
     // Initialize MQTT
     initializeMqtt(config.mqtt);
     
-    // Initialize state
-    state.initializeState(config.initialPosition || 70, config.travelTime || 30000);
+    // Initialize state with HomeKit position system (0 = open, 100 = closed)
+    state.initializeState(config.initialPosition || 0, config.travelTime || 30000);
     
     // Set debounce time from config
     debounceTime = config.debounceTime || 1000;

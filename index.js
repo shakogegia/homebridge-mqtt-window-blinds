@@ -17,24 +17,6 @@ class WindowBlindsAccessory {
         // Initialize blinds with configuration
         this.initializeBlindsWithConfig(config);
         
-        // Create the accessory with a proper UUID
-        const accessoryUUID = uuid.generate(this.serialNumber);
-        this.accessory = new Accessory(this.name, accessoryUUID);
-        this.accessory.category = Categories.WINDOW_COVERING;
-        
-        // Add accessory information
-        const accessoryInfo = this.accessory.getService(Service.AccessoryInformation);
-        accessoryInfo
-            .setCharacteristic(Characteristic.Manufacturer, this.manufacturer)
-            .setCharacteristic(Characteristic.Model, this.model)
-            .setCharacteristic(Characteristic.SerialNumber, this.serialNumber);
-        
-        // Create the window covering service
-        this.windowCoveringService = this.accessory.addService(Service.WindowCovering, this.name);
-        
-        // Set up characteristics
-        this.setupCharacteristics();
-        
         this.log(`Window Blinds accessory "${this.name}" initialized`);
     }
     
@@ -72,27 +54,47 @@ class WindowBlindsAccessory {
         initializeBlinds(blindsConfig);
     }
     
-    setupCharacteristics() {
+    // Required methods for Homebridge compatibility
+    getServices() {
+        const services = [];
+        
+        // Accessory Information Service
+        const accessoryInfo = new Service.AccessoryInformation();
+        accessoryInfo
+            .setCharacteristic(Characteristic.Manufacturer, this.manufacturer)
+            .setCharacteristic(Characteristic.Model, this.model)
+            .setCharacteristic(Characteristic.SerialNumber, this.serialNumber)
+            .setCharacteristic(Characteristic.FirmwareRevision, '1.0.0')
+            .setCharacteristic(Characteristic.Name, this.name);
+        services.push(accessoryInfo);
+        
+        // Window Covering Service
+        const windowCoveringService = new Service.WindowCovering(this.name);
+        
         // Target Position (0-100, where 0 is fully open, 100 is fully closed)
-        this.windowCoveringService
+        windowCoveringService
             .getCharacteristic(Characteristic.TargetPosition)
             .on('set', this.setTargetPosition.bind(this))
             .on('get', this.getTargetPosition.bind(this));
         
         // Current Position
-        this.windowCoveringService
+        windowCoveringService
             .getCharacteristic(Characteristic.CurrentPosition)
             .on('get', this.getCurrentPosition.bind(this));
         
         // Position State
-        this.windowCoveringService
+        windowCoveringService
             .getCharacteristic(Characteristic.PositionState)
             .on('get', this.getPositionState.bind(this));
         
         // Hold Position (optional - allows stopping)
-        this.windowCoveringService
+        windowCoveringService
             .getCharacteristic(Characteristic.HoldPosition)
             .on('set', this.setHoldPosition.bind(this));
+        
+        services.push(windowCoveringService);
+        
+        return services;
     }
     
     async setTargetPosition(value, callback) {
@@ -105,11 +107,6 @@ class WindowBlindsAccessory {
             const targetPosition = 100 - value;
             
             await setPosition(targetPosition);
-            
-            // Update current position characteristic
-            this.windowCoveringService
-                .getCharacteristic(Characteristic.CurrentPosition)
-                .updateValue(value);
             
             callback(null);
         } catch (error) {
@@ -151,16 +148,7 @@ class WindowBlindsAccessory {
         }
     }
     
-    // Required methods for Homebridge compatibility
-    getServices() {
-        return this.accessory.getServices();
-    }
-    
-    getAccessory() {
-        return this.accessory;
-    }
-    
-    // Optional: Add identify method for HomeKit pairing
+    // Identify method for HomeKit pairing
     identify(callback) {
         this.log(`Identify requested for ${this.name}`);
         callback();

@@ -49,6 +49,10 @@ class WindowBlindsAccessory {
                 password: config.mqtt.password,
                 clientId: config.mqtt.clientId || `blinds_${this.serialNumber}`
             },
+            upCommand: config.upCommand || 'up',
+            downCommand: config.downCommand || 'down',
+            stopCommand: config.stopCommand || 'stop',
+            saveCommand: config.saveCommand || 'save',
             initialPosition: config.initialPosition || 70,
             travelTime: config.travelTime || 30000
         };

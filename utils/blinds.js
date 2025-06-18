@@ -16,8 +16,8 @@ function initializeBlinds(config) {
     // Initialize state
     state.initializeState(config.initialPosition || 70, config.travelTime || 30000);
     
-    // Create commands
-    commands = createCommands(config.mqtt.topicPrefix);
+    // Create commands using the full config
+    commands = createCommands(config);
     
     isInitialized = true;
 }

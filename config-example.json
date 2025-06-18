@@ -20,6 +20,10 @@
         "password": "your_mqtt_password",
         "clientId": "blinds_BLINDS001"
       },
+      "upCommand": "blinds/up",
+      "downCommand": "blinds/down",
+      "stopCommand": "blinds/stop",
+      "saveCommand": "blinds/save",
       "initialPosition": 70,
       "travelTime": 30000
     }

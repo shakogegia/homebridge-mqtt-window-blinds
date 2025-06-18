@@ -78,20 +78,35 @@ npm link
 | `serialNumber` | string | No | "BLINDS001" | Unique serial number |
 | `mqtt.host` | string | Yes | - | MQTT broker hostname/IP |
 | `mqtt.port` | number | No | 1883 | MQTT broker port |
-| `mqtt.topicPrefix` | string | Yes | - | MQTT topic prefix |
+| `mqtt.topicPrefix` | string | No | - | MQTT topic prefix (legacy) |
 | `mqtt.username` | string | No | - | MQTT username |
 | `mqtt.password` | string | No | - | MQTT password |
 | `mqtt.clientId` | string | No | auto-generated | MQTT client ID |
+| `upCommand` | string | No | "up" | MQTT topic for up command |
+| `downCommand` | string | No | "down" | MQTT topic for down command |
+| `stopCommand` | string | No | "stop" | MQTT topic for stop command |
+| `saveCommand` | string | No | "save" | MQTT topic for save command |
 | `initialPosition` | number | No | 70 | Initial blinds position (0-100) |
 | `travelTime` | number | No | 30000 | Travel time in milliseconds |
 
 ### MQTT Topics
 
-The plugin uses the following MQTT topics (where `{topicPrefix}` is your configured prefix):
+The plugin publishes to the following MQTT topics based on your configuration:
 
-- `{topicPrefix}/position` - Set blinds position (0-100)
-- `{topicPrefix}/position/state` - Current position feedback
-- `{topicPrefix}/command` - Command topic (open, close, stop)
+- `{upCommand}` - Command to move blinds up
+- `{downCommand}` - Command to move blinds down  
+- `{stopCommand}` - Command to stop blinds movement
+- `{saveCommand}` - Command to save current position
+
+**Example configuration:**
+```json
+{
+  "upCommand": "blinds/living_room/up",
+  "downCommand": "blinds/living_room/down", 
+  "stopCommand": "blinds/living_room/stop",
+  "saveCommand": "blinds/living_room/save"
+}
+```
 
 ## Usage
 

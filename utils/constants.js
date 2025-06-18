@@ -7,12 +7,12 @@ const config = {
   };
   
   // Command definitions
-function createCommands(topicPrefix) {
+function createCommands(config) {
     return {
-        'DOWN': `${topicPrefix}/down`,
-        'UP': `${topicPrefix}/up`,
-        'STOP': `${topicPrefix}/stop`,
-        'SAVE': `${topicPrefix}/save`,
+        'DOWN': config.downCommand || 'down',
+        'UP': config.upCommand || 'up',
+        'STOP': config.stopCommand || 'stop',
+        'SAVE': config.saveCommand || 'save',
     };
 }
   

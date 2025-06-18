@@ -22,7 +22,11 @@ const mockHomebridge = {
                     host: "localhost",
                     port: 1883,
                     topicPrefix: "test"
-                }
+                },
+                upCommand: "test/up",
+                downCommand: "test/down",
+                stopCommand: "test/stop",
+                saveCommand: "test/save"
             };
             
             const mockApi = {

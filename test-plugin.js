@@ -28,6 +28,8 @@ const mockHomebridge = {
                 stopCommand: "test/stop",
                 saveCommand: "test/save",
                 initialPosition: 100,
+                travelTimeUp: 25000,
+                travelTimeDown: 35000,
                 debounceTime: 1000
             };
             

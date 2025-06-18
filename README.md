@@ -87,7 +87,8 @@ npm link
 | `stopCommand` | string | No | "stop" | MQTT topic for stop command |
 | `saveCommand` | string | No | "save" | MQTT topic for save command |
 | `initialPosition` | number | No | 100 | Initial blinds position (0-100, 0=closed, 100=open) |
-| `travelTime` | number | No | 30000 | Travel time in milliseconds |
+| `travelTimeUp` | number | No | 30000 | Travel time for opening in milliseconds |
+| `travelTimeDown` | number | No | 30000 | Travel time for closing in milliseconds |
 | `debounceTime` | number | No | 1000 | Debounce time in milliseconds (prevents rapid commands) |
 
 ### MQTT Topics
@@ -129,6 +130,29 @@ The plugin includes a debouncing mechanism to prevent rapid command execution th
 ```json
 {
   "debounceTime": 2000  // 2 second debounce
+}
+```
+
+### Travel Times
+
+The plugin supports different travel times for opening and closing operations:
+
+- **travelTimeUp**: Time in milliseconds for opening blinds (0% to 100%)
+- **travelTimeDown**: Time in milliseconds for closing blinds (100% to 0%)
+- **Accurate positioning**: Uses appropriate travel time based on movement direction
+- **Realistic behavior**: Accounts for different motor speeds in each direction
+
+**Why different times?**
+- Gravity affects closing speed (usually faster)
+- Motor resistance affects opening speed (usually slower)
+- Different gear ratios may be used for each direction
+- Mechanical resistance varies by direction
+
+**Example configuration:**
+```json
+{
+  "travelTimeUp": 25000,    // 25 seconds to open
+  "travelTimeDown": 35000   // 35 seconds to close
 }
 ```
 

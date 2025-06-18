@@ -25,7 +25,8 @@
       "stopCommand": "blinds/stop",
       "saveCommand": "blinds/save",
       "initialPosition": 100,
-      "travelTime": 30000,
+      "travelTimeUp": 25000,
+      "travelTimeDown": 35000,
       "debounceTime": 1000
     }
   ],

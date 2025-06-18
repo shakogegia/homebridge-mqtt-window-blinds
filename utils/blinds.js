@@ -8,6 +8,8 @@ let isInitialized = false;
 let debouncedUp = null;
 let debouncedDown = null;
 let debounceTime = 1000; // Default 1 second
+let travelTimeUp = 30000; // Default 30 seconds for up
+let travelTimeDown = 30000; // Default 30 seconds for down
 
 function initializeBlinds(config) {
     if (isInitialized) {
@@ -18,10 +20,14 @@ function initializeBlinds(config) {
     initializeMqtt(config.mqtt);
     
     // Initialize state with reversed position system (0 = closed, 100 = open)
-    state.initializeState(config.initialPosition || 100, config.travelTime || 30000);
+    state.initializeState(config.initialPosition ?? 0, config.travelTimeUp || 30000);
     
     // Set debounce time from config
     debounceTime = config.debounceTime || 1000;
+    
+    // Set travel times from config
+    travelTimeUp = config.travelTimeUp || 30000;
+    travelTimeDown = config.travelTimeDown || 30000;
     
     // Create debounced functions
     debouncedUp = debounce(async () => {
@@ -85,23 +91,20 @@ async function setPosition(position) {
     const currentPosition = state.getCurrentPosition();
     const positionDifference = targetPosition - currentPosition;
     
-    if (positionDifference === 0) {
-        console.log(`Window is already at position ${targetPosition}%`);
-        return;
-    }
+    console.log(`Position difference: ${positionDifference}`, JSON.stringify(state));
 
-    // Calculate travel time based on the percentage difference
-    const travelTime = Math.abs(positionDifference) * (state.getTotalTravelTime() / 100);
+    // Calculate travel time based on the percentage difference and direction
+    const travelTime = Math.abs(positionDifference) * (targetPosition > currentPosition ? travelTimeUp : travelTimeDown) / 100;
     
     // Determine direction and command (0 = closed, 100 = open)
-    const direction = positionDifference > 0 ? 'up' : 'down';
+    const direction = targetPosition > currentPosition ? 'up' : 'down';
     
     console.log(`Moving window ${direction} from ${currentPosition}% to ${targetPosition}%`);
-    console.log(`Travel time: ${travelTime}ms`);
+    console.log(`Travel time: ${travelTime}ms (using ${direction === 'up' ? 'travelTimeUp' : 'travelTimeDown'})`);
     
     try {
         // Send the movement command with debouncing
-        if (positionDifference > 0) {
+        if (direction === 'up') {
             await debouncedUp();
         } else {
             await debouncedDown();

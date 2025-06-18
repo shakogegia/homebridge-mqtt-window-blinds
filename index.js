@@ -58,7 +58,8 @@ class WindowBlindsAccessory {
             stopCommand: config.stopCommand || 'stop',
             saveCommand: config.saveCommand || 'save',
             initialPosition: config.initialPosition || 100,
-            travelTime: config.travelTime || 30000,
+            travelTimeUp: config.travelTimeUp || 30000,
+            travelTimeDown: config.travelTimeDown || 30000,
             debounceTime: config.debounceTime || 1000
         };
         

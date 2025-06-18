@@ -9,10 +9,8 @@ let travelTimeUp = 30000; // Default 30 seconds for up
 let travelTimeDown = 30000; // Default 30 seconds for down
 
 // Debounce tracking variables
-let upTimeout = null;
-let downTimeout = null;
-let lastUpCall = 0;
-let lastDownCall = 0;
+let setPositionTimeout = null;
+let lastSetPositionCall = 0;
 
 function initializeBlinds(config) {
     if (isInitialized) {
@@ -38,49 +36,12 @@ function initializeBlinds(config) {
     isInitialized = true;
 }
 
-// Custom debounce function that ensures latest call is executed
-async function debouncedUp() {
-    const now = Date.now();
-    lastUpCall = now;
-    
-    // Clear existing timeout
-    if (upTimeout) {
-        clearTimeout(upTimeout);
-    }
-    
-    // Set new timeout
-    upTimeout = setTimeout(async () => {
-        // Only execute if this is still the latest call
-        if (lastUpCall === now) {
-            await publishMessage(commands.UP);
-        }
-    }, debounceTime);
-}
-
-async function debouncedDown() {
-    const now = Date.now();
-    lastDownCall = now;
-    
-    // Clear existing timeout
-    if (downTimeout) {
-        clearTimeout(downTimeout);
-    }
-    
-    // Set new timeout
-    downTimeout = setTimeout(async () => {
-        // Only execute if this is still the latest call
-        if (lastDownCall === now) {
-            await publishMessage(commands.DOWN);
-        }
-    }, debounceTime);
-}
-
 async function open() {
     if (!isInitialized) {
         throw new Error('Blinds not initialized. Call initializeBlinds() first.');
     }
     console.log('Opening blinds completely (no stop command will be sent)');
-    await debouncedUp();
+    await publishMessage(commands.UP);
 }
 
 async function close() {
@@ -88,7 +49,7 @@ async function close() {
         throw new Error('Blinds not initialized. Call initializeBlinds() first.');
     }
     console.log('Closing blinds completely (no stop command will be sent)');
-    await debouncedDown();
+    await publishMessage(commands.DOWN);
 }
 
 async function stop() {
@@ -99,11 +60,27 @@ async function stop() {
     await publishMessage(commands.STOP);
 }
 
-async function setPosition(position) {
-    if (!isInitialized) {
-        throw new Error('Blinds not initialized. Call initializeBlinds() first.');
+// Debounced setPosition function
+async function debouncedSetPosition(position) {
+    const now = Date.now();
+    lastSetPositionCall = now;
+    
+    // Clear existing timeout
+    if (setPositionTimeout) {
+        clearTimeout(setPositionTimeout);
     }
+    
+    // Set new timeout
+    setPositionTimeout = setTimeout(async () => {
+        // Only execute if this is still the latest call
+        if (lastSetPositionCall === now) {
+            await executeSetPosition(position);
+        }
+    }, debounceTime);
+}
 
+// The actual position setting logic
+async function executeSetPosition(position) {
     if (position < 0 || position > 100) {
         throw new Error('Position must be between 0 and 100');
     }
@@ -134,11 +111,11 @@ async function setPosition(position) {
     console.log(`Travel time: ${travelTime}ms (using ${direction === 'up' ? 'travelTimeUp' : 'travelTimeDown'})`);
     
     try {
-        // Send the movement command with debouncing
+        // Send the movement command immediately (no debounce)
         if (direction === 'up') {
-            await debouncedUp();
+            await publishMessage(commands.UP);
         } else {
-            await debouncedDown();
+            await publishMessage(commands.DOWN);
         }
         
         // Update the target position immediately
@@ -169,6 +146,15 @@ async function setPosition(position) {
         }
         throw error;
     }
+}
+
+async function setPosition(position) {
+    if (!isInitialized) {
+        throw new Error('Blinds not initialized. Call initializeBlinds() first.');
+    }
+
+    // Use debounced setPosition to prevent multiple executions
+    await debouncedSetPosition(position);
 }
 
 module.exports = { initializeBlinds, open, close, stop, setPosition };

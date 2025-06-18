@@ -1,4 +1,4 @@
-const { Accessory, Service, Characteristic, Categories } = require('hap-nodejs');
+const { Accessory, Service, Characteristic, Categories, uuid } = require('hap-nodejs');
 const { initializeBlinds, setPosition, open, close, stop } = require('./utils/blinds');
 const state = require('./utils/state');
 
@@ -17,8 +17,9 @@ class WindowBlindsAccessory {
         // Initialize blinds with configuration
         this.initializeBlindsWithConfig(config);
         
-        // Create the accessory
-        this.accessory = new Accessory(this.name, this.serialNumber);
+        // Create the accessory with a proper UUID
+        const accessoryUUID = uuid.generate(this.serialNumber);
+        this.accessory = new Accessory(this.name, accessoryUUID);
         this.accessory.category = Categories.WINDOW_COVERING;
         
         // Add accessory information

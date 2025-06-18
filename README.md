@@ -13,6 +13,8 @@ A Homebridge plugin that creates a window blinds accessory for MQTT-controlled b
 
 ## Installation
 
+### Method 1: npm (Recommended)
+
 1. Install Homebridge if you haven't already:
    ```bash
    npm install -g homebridge
@@ -20,7 +22,14 @@ A Homebridge plugin that creates a window blinds accessory for MQTT-controlled b
 
 2. Install this plugin:
    ```bash
-   npm install -g homebridge-window-blinds
+   npm install -g homebridge-mqtt-window-blinds
+   ```
+
+### Method 2: GitHub
+
+If you prefer to install directly from GitHub:
+   ```bash
+   npm install -g https://github.com/YOUR_USERNAME/YOUR_REPO_NAME.git
    ```
 
 3. Create or edit your Homebridge configuration file (`~/.homebridge/config.json`):

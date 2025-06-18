@@ -16,9 +16,17 @@
     "iot",
     "homekit"
   ],
-  "author": "",
+  "author": "Shalva Gegi <shalva.gegi@gmail.com>",
   "license": "ISC",
   "description": "Homebridge plugin for MQTT-controlled window blinds",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/shakogegia/homebridge-mqtt-window-blinds.git"
+  },
+  "bugs": {
+    "url": "https://github.com/shakogegia/homebridge-mqtt-window-blinds/issues"
+  },
+  "homepage": "https://github.com/shakogegia/homebridge-mqtt-window-blinds#readme",
   "engines": {
     "homebridge": ">=1.0.0"
   },

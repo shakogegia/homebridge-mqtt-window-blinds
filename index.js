@@ -1,11 +1,13 @@
-const { Accessory, Service, Characteristic, Categories } = require('hap-nodejs');
 const { initializeBlinds, setPosition, open, close, stop } = require('./utils/blinds');
 const state = require('./utils/state');
 
+let Accessory, Service, Characteristic;
+
 class WindowBlindsAccessory {
-    constructor(log, config) {
+    constructor(log, config, api) {
         this.log = log;
         this.config = config;
+        this.api = api;
         this.name = config.name || 'Window Blinds';
         this.manufacturer = config.manufacturer || 'Custom';
         this.model = config.model || 'MQTT Blinds';
@@ -156,6 +158,11 @@ class WindowBlindsAccessory {
 }
 
 module.exports = function(homebridge) {
+    // Store the homebridge API for later use
+    Accessory = homebridge.platformAccessory;
+    Service = homebridge.hap.Service;
+    Characteristic = homebridge.hap.Characteristic;
+    
     // Register the accessory
     homebridge.registerAccessory('homebridge-mqtt-window-blinds', 'WindowBlinds', WindowBlindsAccessory);
 }; 

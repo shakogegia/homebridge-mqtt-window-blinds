@@ -1,168 +1,176 @@
-# Homebridge Window Blinds Plugin
+# Homebridge MQTT Window Blinds
 
-A Homebridge plugin that creates a window blinds accessory for MQTT-controlled blinds using your existing `setPosition`, `open`, `close`, and `stop` functions.
+A Homebridge plugin for controlling window blinds via MQTT. This plugin allows you to integrate MQTT-controlled blinds into Apple HomeKit through Homebridge.
 
 ## Features
 
-- Control window blinds through HomeKit
-- Set precise positions (0-100%)
-- Open and close blinds
-- Stop blinds movement
-- MQTT integration for ESP8266-based blinds
-- Configuration through Homebridge config (no .env files needed)
+- Control window blinds through MQTT
+- Full HomeKit integration with position control
+- Support for opening, closing, and stopping blinds
+- Configurable travel time and initial position
+- Real-time position feedback
 
 ## Installation
 
-### Method 1: npm (Recommended)
+### Prerequisites
 
-1. Install Homebridge if you haven't already:
-   ```bash
-   npm install -g homebridge
-   ```
+- Node.js (v14 or higher)
+- Homebridge installed and configured
+- MQTT broker (like Mosquitto)
 
-2. Install this plugin:
-   ```bash
-   npm install -g homebridge-mqtt-window-blinds
-   ```
+### Plugin Installation
 
-### Method 2: GitHub
+1. Install the plugin globally:
+```bash
+npm install -g homebridge-mqtt-window-blinds
+```
 
-If you prefer to install directly from GitHub:
-   ```bash
-   npm install -g https://github.com/YOUR_USERNAME/YOUR_REPO_NAME.git
-   ```
+2. Or install from source:
+```bash
+git clone https://github.com/shakogegia/homebridge-mqtt-window-blinds.git
+cd homebridge-mqtt-window-blinds
+npm install
+npm link
+```
 
-3. Create or edit your Homebridge configuration file (`~/.homebridge/config.json`):
-   ```json
-   {
-     "bridge": {
-       "name": "Homebridge",
-       "username": "CC:22:3D:E3:CE:30",
-       "port": 51826,
-       "pin": "031-45-154"
-     },
-     "accessories": [
-       {
-         "accessory": "WindowBlinds",
-         "name": "Living Room Blinds",
-         "manufacturer": "Custom",
-         "model": "MQTT Blinds",
-         "serialNumber": "BLINDS001",
-         "mqtt": {
-           "host": "192.168.1.100",
-           "port": 1883,
-           "topicPrefix": "blinds",
-           "username": "your_mqtt_username",
-           "password": "your_mqtt_password",
-           "clientId": "blinds_BLINDS001"
-         },
-         "initialPosition": 70,
-         "travelTime": 30000
-       }
-     ],
-     "platforms": []
-   }
-   ```
+### Configuration
 
-4. Start Homebridge:
-   ```bash
-   homebridge
-   ```
+1. Add the accessory to your Homebridge configuration file (`~/.homebridge/config.json`):
 
-## Configuration Options
+```json
+{
+  "bridge": {
+    "name": "Homebridge",
+    "username": "CC:22:3D:E3:CE:30",
+    "port": 51826,
+    "pin": "031-45-154"
+  },
+  "accessories": [
+    {
+      "accessory": "WindowBlinds",
+      "name": "Living Room Blinds",
+      "manufacturer": "Custom",
+      "model": "MQTT Blinds",
+      "serialNumber": "BLINDS001",
+      "mqtt": {
+        "host": "192.168.1.100",
+        "port": 1883,
+        "topicPrefix": "blinds",
+        "username": "your_mqtt_username",
+        "password": "your_mqtt_password",
+        "clientId": "blinds_BLINDS001"
+      },
+      "initialPosition": 70,
+      "travelTime": 30000
+    }
+  ],
+  "platforms": []
+}
+```
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `name` | string | Yes | The name of your blinds accessory |
-| `manufacturer` | string | No | Manufacturer name (default: "Custom") |
-| `model` | string | No | Model name (default: "MQTT Blinds") |
-| `serialNumber` | string | No | Serial number (default: "BLINDS001") |
-| `mqtt.host` | string | Yes | MQTT broker IP address |
-| `mqtt.port` | number | No | MQTT broker port (default: 1883) |
-| `mqtt.topicPrefix` | string | Yes | Topic prefix for blinds (e.g., "blinds") |
-| `mqtt.username` | string | No | MQTT username (if authentication required) |
-| `mqtt.password` | string | No | MQTT password (if authentication required) |
-| `mqtt.clientId` | string | No | MQTT client ID (auto-generated if not provided) |
-| `initialPosition` | number | No | Initial blinds position 0-100 (default: 70) |
-| `travelTime` | number | No | Full travel time in milliseconds (default: 30000) |
+### Configuration Options
 
-## Usage
-
-Once configured, you can control your blinds through:
-
-- **Home app** on iOS/macOS
-- **Siri** voice commands
-- **HomeKit automations**
-- **Third-party HomeKit apps**
-
-### HomeKit Controls
-
-- **Position Slider**: Set blinds to any position between 0% (fully open) and 100% (fully closed)
-- **Open/Close Buttons**: Quick open or close blinds
-- **Stop**: Stop blinds movement at current position
-
-### Position Mapping
-
-The plugin automatically converts between HomeKit and your system's position values:
-
-- **HomeKit**: 0% = fully open, 100% = fully closed
-- **Your System**: 0% = fully closed, 100% = fully open
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `name` | string | Yes | "Window Blinds" | Display name in HomeKit |
+| `manufacturer` | string | No | "Custom" | Manufacturer name |
+| `model` | string | No | "MQTT Blinds" | Model name |
+| `serialNumber` | string | No | "BLINDS001" | Unique serial number |
+| `mqtt.host` | string | Yes | - | MQTT broker hostname/IP |
+| `mqtt.port` | number | No | 1883 | MQTT broker port |
+| `mqtt.topicPrefix` | string | Yes | - | MQTT topic prefix |
+| `mqtt.username` | string | No | - | MQTT username |
+| `mqtt.password` | string | No | - | MQTT password |
+| `mqtt.clientId` | string | No | auto-generated | MQTT client ID |
+| `initialPosition` | number | No | 70 | Initial blinds position (0-100) |
+| `travelTime` | number | No | 30000 | Travel time in milliseconds |
 
 ### MQTT Topics
 
-The plugin will publish to these MQTT topics:
-- `{topicPrefix}/up` - Move blinds up
-- `{topicPrefix}/down` - Move blinds down
-- `{topicPrefix}/stop` - Stop blinds movement
+The plugin uses the following MQTT topics (where `{topicPrefix}` is your configured prefix):
 
-## Development
+- `{topicPrefix}/position` - Set blinds position (0-100)
+- `{topicPrefix}/position/state` - Current position feedback
+- `{topicPrefix}/command` - Command topic (open, close, stop)
 
-To run this plugin in development mode:
+## Usage
 
-1. Clone this repository
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-3. Test the plugin:
-   ```bash
-   npm test
-   ```
+1. Restart Homebridge after configuration:
+```bash
+sudo systemctl restart homebridge
+```
+
+2. Add the accessory to HomeKit using the Home app
+3. Control your blinds through the Home app or Siri
 
 ## Troubleshooting
 
 ### Common Issues
 
-1. **MQTT Connection Failed**
-   - Check your MQTT broker settings in the Homebridge config
-   - Verify network connectivity
-   - Check MQTT credentials
+1. **"Cannot generate setupURI on an accessory that isn't published yet!"**
+   - Make sure the plugin is properly installed and configured
+   - Check that the accessory is listed in your Homebridge config
+   - Restart Homebridge after configuration changes
 
-2. **Blinds Not Responding**
-   - Verify MQTT topics are correct
-   - Check ESP8266 is connected and responding
-   - Review Homebridge logs for errors
+2. **MQTT Connection Issues**
+   - Verify MQTT broker is running and accessible
+   - Check username/password credentials
+   - Ensure network connectivity to MQTT broker
 
-3. **Position Inaccuracy**
-   - Adjust `travelTime` in your Homebridge config
-   - The travel time should match your blinds' actual movement time
+3. **Blinds Not Responding**
+   - Check MQTT topic configuration
+   - Verify your blinds controller is listening to the correct topics
+   - Check Homebridge logs for errors
 
-4. **Configuration Errors**
-   - Ensure all required MQTT fields are provided
-   - Check JSON syntax in config file
-   - Verify topic prefix matches your ESP8266 setup
+### Debug Mode
 
-### Logs
+Enable debug logging by setting the log level in your Homebridge config:
 
-Check Homebridge logs for detailed information:
+```json
+{
+  "bridge": {
+    "name": "Homebridge",
+    "username": "CC:22:3D:E3:CE:30",
+    "port": 51826,
+    "pin": "031-45-154"
+  },
+  "accessories": [...],
+  "platforms": [],
+  "log": "debug"
+}
+```
+
+## Development
+
+### Local Development
+
+1. Clone the repository
+2. Install dependencies: `npm install`
+3. Link the plugin: `npm link`
+4. Test with: `npm test`
+
+### Testing
+
+Run the test suite:
 ```bash
-homebridge -D
+npm test
 ```
 
 ## License
 
-ISC
+ISC License
 
 ## Contributing
 
-Feel free to submit issues and enhancement requests! 
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests if applicable
+5. Submit a pull request
+
+## Support
+
+For issues and questions:
+- Create an issue on GitHub
+- Check the troubleshooting section above
+- Review Homebridge documentation 

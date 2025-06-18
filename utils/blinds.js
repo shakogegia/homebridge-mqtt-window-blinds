@@ -4,6 +4,8 @@ const { initializeMqtt, publishMessage } = require("./mqtt");
 
 let commands = null;
 let isInitialized = false;
+let debounceTimers = {};
+let debounceTime = 1000; // Default 1 second
 
 function initializeBlinds(config) {
     if (isInitialized) {
@@ -16,30 +18,56 @@ function initializeBlinds(config) {
     // Initialize state
     state.initializeState(config.initialPosition || 70, config.travelTime || 30000);
     
+    // Set debounce time from config
+    debounceTime = config.debounceTime || 1000;
+    
     // Create commands using the full config
     commands = createCommands(config);
     
     isInitialized = true;
 }
 
+// Debounced function to prevent rapid command execution
+function debouncedPublish(command, commandName) {
+    return new Promise((resolve, reject) => {
+        // Clear existing timer for this command
+        if (debounceTimers[commandName]) {
+            clearTimeout(debounceTimers[commandName]);
+        }
+        
+        // Set new timer
+        debounceTimers[commandName] = setTimeout(async () => {
+            try {
+                await publishMessage(command);
+                resolve();
+            } catch (error) {
+                reject(error);
+            }
+        }, debounceTime);
+    });
+}
+
 async function open() {
     if (!isInitialized) {
         throw new Error('Blinds not initialized. Call initializeBlinds() first.');
     }
-    await publishMessage(commands.UP);
+    console.log('Opening blinds completely (no stop command will be sent)');
+    await debouncedPublish(commands.UP, 'UP');
 }
 
 async function close() {
     if (!isInitialized) {
         throw new Error('Blinds not initialized. Call initializeBlinds() first.');
     }
-    await publishMessage(commands.DOWN);
+    console.log('Closing blinds completely (no stop command will be sent)');
+    await debouncedPublish(commands.DOWN, 'DOWN');
 }
 
 async function stop() {
     if (!isInitialized) {
         throw new Error('Blinds not initialized. Call initializeBlinds() first.');
     }
+    // Stop command should not be debounced as it's critical for safety
     await publishMessage(commands.STOP);
 }
 
@@ -52,12 +80,22 @@ async function setPosition(position) {
         throw new Error('Position must be between 0 and 100');
     }
 
+    // Handle edge cases: treat >97% as fully closed and <3% as fully open
+    let targetPosition = position;
+    if (position > 97) {
+        targetPosition = 100;
+        console.log(`Position ${position}% treated as fully closed (100%)`);
+    } else if (position < 3) {
+        targetPosition = 0;
+        console.log(`Position ${position}% treated as fully open (0%)`);
+    }
+
     // Calculate the difference between current and target position
     const currentPosition = state.getCurrentPosition();
-    const positionDifference = position - currentPosition;
+    const positionDifference = targetPosition - currentPosition;
     
     if (positionDifference === 0) {
-        console.log(`Window is already at position ${position}%`);
+        console.log(`Window is already at position ${targetPosition}%`);
         return;
     }
 
@@ -67,27 +105,33 @@ async function setPosition(position) {
     // Determine direction and command
     const command = positionDifference > 0 ? commands.DOWN : commands.UP;
     const direction = positionDifference > 0 ? 'down' : 'up';
+    const commandName = positionDifference > 0 ? 'DOWN' : 'UP';
     
-    console.log(`Moving window ${direction} from ${currentPosition}% to ${position}%`);
+    console.log(`Moving window ${direction} from ${currentPosition}% to ${targetPosition}%`);
     console.log(`Travel time: ${travelTime}ms`);
     
     try {
-        // Send the movement command
-        await publishMessage(command);
+        // Send the movement command with debouncing
+        await debouncedPublish(command, commandName);
         
         // Wait for the calculated travel time
         await new Promise(resolve => setTimeout(resolve, travelTime));
         
-        // Stop the movement
-        await publishMessage(commands.STOP);
+        // Only send stop command if not going to full open (0%) or full close (100%)
+        if (targetPosition !== 0 && targetPosition !== 100) {
+            await publishMessage(commands.STOP);
+            console.log('Sent stop command');
+        } else {
+            console.log(`No stop command sent for ${targetPosition === 0 ? 'full open' : 'full close'}`);
+        }
 
         // Update the current position
-        state.setCurrentPosition(position);
+        state.setCurrentPosition(targetPosition);
         
-        console.log(`Window position set to ${position}%`);
+        console.log(`Window position set to ${targetPosition}%`);
     } catch (error) {
         console.error('Error setting window position:', error);
-        // Try to stop movement in case of error
+        // Try to stop movement in case of error (always safe to stop)
         try {
             await publishMessage(commands.STOP);
         } catch (stopError) {

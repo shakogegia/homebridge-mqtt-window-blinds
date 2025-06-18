@@ -88,6 +88,7 @@ npm link
 | `saveCommand` | string | No | "save" | MQTT topic for save command |
 | `initialPosition` | number | No | 70 | Initial blinds position (0-100) |
 | `travelTime` | number | No | 30000 | Travel time in milliseconds |
+| `debounceTime` | number | No | 1000 | Debounce time in milliseconds (prevents rapid commands) |
 
 ### MQTT Topics
 
@@ -107,6 +108,48 @@ The plugin publishes to the following MQTT topics based on your configuration:
   "saveCommand": "blinds/living_room/save"
 }
 ```
+
+### Debouncing
+
+The plugin includes a debouncing mechanism to prevent rapid command execution that could damage your blinds or cause erratic behavior:
+
+- **Default debounce time**: 1 second (1000ms)
+- **Configurable**: Set `debounceTime` in milliseconds
+- **Safety feature**: Stop commands are not debounced for immediate response
+- **Per-command**: Each command type (up/down) has its own debounce timer
+
+**Benefits:**
+- Prevents motor damage from rapid start/stop cycles
+- Reduces MQTT message spam
+- Improves system stability
+- Protects against accidental rapid commands from HomeKit
+
+**Example debounce configuration:**
+```json
+{
+  "debounceTime": 2000  // 2 second debounce
+}
+```
+
+### Position Optimization
+
+The plugin includes intelligent position handling to optimize blinds operation:
+
+- **Edge case handling**: Positions > 97% are treated as fully closed (100%)
+- **Edge case handling**: Positions < 3% are treated as fully open (0%)
+- **No stop commands**: Full open (0%) and full close (100%) operations don't send stop commands
+- **Automatic optimization**: Reduces unnecessary stop commands for better motor life
+
+**Benefits:**
+- Prevents motor damage from unnecessary stop commands at limits
+- Handles slight position variations near open/close limits
+- More natural behavior for full open/close operations
+- Better compatibility with different blind types and limit switches
+
+**Example behavior:**
+- Position 98% → Treated as 100% (full close, no stop command)
+- Position 2% → Treated as 0% (full open, no stop command)
+- Position 50% → Normal operation with stop command
 
 ## Usage
 

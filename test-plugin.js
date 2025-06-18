@@ -26,7 +26,8 @@ const mockHomebridge = {
                 upCommand: "test/up",
                 downCommand: "test/down",
                 stopCommand: "test/stop",
-                saveCommand: "test/save"
+                saveCommand: "test/save",
+                debounceTime: 1000
             };
             
             const mockApi = {

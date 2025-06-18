@@ -59,7 +59,8 @@ class WindowBlindsAccessory {
         const services = [];
         
         // Accessory Information Service
-        const accessoryInfo = new Service.AccessoryInformation();
+        const accessoryInfoUUID = uuid.generate(`${this.serialNumber}_info`);
+        const accessoryInfo = new Service.AccessoryInformation(this.name, accessoryInfoUUID);
         accessoryInfo
             .setCharacteristic(Characteristic.Manufacturer, this.manufacturer)
             .setCharacteristic(Characteristic.Model, this.model)
@@ -69,7 +70,8 @@ class WindowBlindsAccessory {
         services.push(accessoryInfo);
         
         // Window Covering Service
-        const windowCoveringService = new Service.WindowCovering(this.name);
+        const windowCoveringUUID = uuid.generate(`${this.serialNumber}_window_covering`);
+        const windowCoveringService = new Service.WindowCovering(this.name, windowCoveringUUID);
         
         // Target Position (0-100, where 0 is fully open, 100 is fully closed)
         windowCoveringService

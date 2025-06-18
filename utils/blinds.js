@@ -17,8 +17,8 @@ function initializeBlinds(config) {
     // Initialize MQTT
     initializeMqtt(config.mqtt);
     
-    // Initialize state with HomeKit position system (0 = open, 100 = closed)
-    state.initializeState(config.initialPosition || 0, config.travelTime || 30000);
+    // Initialize state with reversed position system (0 = closed, 100 = open)
+    state.initializeState(config.initialPosition || 100, config.travelTime || 30000);
     
     // Set debounce time from config
     debounceTime = config.debounceTime || 1000;
@@ -71,14 +71,14 @@ async function setPosition(position) {
         throw new Error('Position must be between 0 and 100');
     }
 
-    // Handle edge cases: treat >97% as fully closed and <3% as fully open
+    // Handle edge cases: treat >97% as fully open and <3% as fully closed
     let targetPosition = position;
     if (position > 97) {
         targetPosition = 100;
-        console.log(`Position ${position}% treated as fully closed (100%)`);
+        console.log(`Position ${position}% treated as fully open (100%)`);
     } else if (position < 3) {
         targetPosition = 0;
-        console.log(`Position ${position}% treated as fully open (0%)`);
+        console.log(`Position ${position}% treated as fully closed (0%)`);
     }
 
     // Calculate the difference between current and target position
@@ -93,8 +93,8 @@ async function setPosition(position) {
     // Calculate travel time based on the percentage difference
     const travelTime = Math.abs(positionDifference) * (state.getTotalTravelTime() / 100);
     
-    // Determine direction and command
-    const direction = positionDifference > 0 ? 'down' : 'up';
+    // Determine direction and command (0 = closed, 100 = open)
+    const direction = positionDifference > 0 ? 'up' : 'down';
     
     console.log(`Moving window ${direction} from ${currentPosition}% to ${targetPosition}%`);
     console.log(`Travel time: ${travelTime}ms`);
@@ -102,20 +102,20 @@ async function setPosition(position) {
     try {
         // Send the movement command with debouncing
         if (positionDifference > 0) {
-            await debouncedDown();
-        } else {
             await debouncedUp();
+        } else {
+            await debouncedDown();
         }
         
         // Wait for the calculated travel time
         await new Promise(resolve => setTimeout(resolve, travelTime));
         
-        // Only send stop command if not going to full open (0%) or full close (100%)
+        // Only send stop command if not going to full closed (0%) or full open (100%)
         if (targetPosition !== 0 && targetPosition !== 100) {
             await publishMessage(commands.STOP);
             console.log('Sent stop command');
         } else {
-            console.log(`No stop command sent for ${targetPosition === 0 ? 'full open' : 'full close'}`);
+            console.log(`No stop command sent for ${targetPosition === 0 ? 'full closed' : 'full open'}`);
         }
 
         // Update the current position

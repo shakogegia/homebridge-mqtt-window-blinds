@@ -86,7 +86,7 @@ npm link
 | `downCommand` | string | No | "down" | MQTT topic for down command |
 | `stopCommand` | string | No | "stop" | MQTT topic for stop command |
 | `saveCommand` | string | No | "save" | MQTT topic for save command |
-| `initialPosition` | number | No | 0 | Initial blinds position (0-100) |
+| `initialPosition` | number | No | 100 | Initial blinds position (0-100, 0=closed, 100=open) |
 | `travelTime` | number | No | 30000 | Travel time in milliseconds |
 | `debounceTime` | number | No | 1000 | Debounce time in milliseconds (prevents rapid commands) |
 
@@ -149,25 +149,25 @@ The plugin provides real-time feedback to HomeKit about blinds movement:
 
 ### Position System
 
-The plugin uses HomeKit's standard position system:
+The plugin uses a reversed position system to match your blinds hardware:
 
-- **0%**: Fully open (blinds completely open)
-- **100%**: Fully closed (blinds completely closed)
+- **0%**: Fully closed (blinds completely closed)
+- **100%**: Fully open (blinds completely open)
 - **Direct mapping**: No position conversion required
-- **Consistent behavior**: Matches HomeKit's expected values
+- **Consistent behavior**: Matches your blinds hardware values
 
 **Position Examples:**
-- `0%` = Blinds fully open
+- `0%` = Blinds fully closed
 - `50%` = Blinds half open/half closed
-- `100%` = Blinds fully closed
+- `100%` = Blinds fully open
 
 ### Position Optimization
 
 The plugin includes intelligent position handling to optimize blinds operation:
 
-- **Edge case handling**: Positions > 97% are treated as fully closed (100%)
-- **Edge case handling**: Positions < 3% are treated as fully open (0%)
-- **No stop commands**: Full open (0%) and full close (100%) operations don't send stop commands
+- **Edge case handling**: Positions > 97% are treated as fully open (100%)
+- **Edge case handling**: Positions < 3% are treated as fully closed (0%)
+- **No stop commands**: Full closed (0%) and full open (100%) operations don't send stop commands
 - **Automatic optimization**: Reduces unnecessary stop commands for better motor life
 
 **Benefits:**
@@ -177,8 +177,8 @@ The plugin includes intelligent position handling to optimize blinds operation:
 - Better compatibility with different blind types and limit switches
 
 **Example behavior:**
-- Position 98% → Treated as 100% (full close, no stop command)
-- Position 2% → Treated as 0% (full open, no stop command)
+- Position 98% → Treated as 100% (full open, no stop command)
+- Position 2% → Treated as 0% (full closed, no stop command)
 - Position 50% → Normal operation with stop command
 
 ## Usage

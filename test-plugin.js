@@ -27,7 +27,7 @@ const mockHomebridge = {
                 downCommand: "test/down",
                 stopCommand: "test/stop",
                 saveCommand: "test/save",
-                initialPosition: 0,
+                initialPosition: 100,
                 debounceTime: 1000
             };
             

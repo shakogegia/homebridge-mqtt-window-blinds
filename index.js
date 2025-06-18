@@ -57,7 +57,7 @@ class WindowBlindsAccessory {
             downCommand: config.downCommand || 'down',
             stopCommand: config.stopCommand || 'stop',
             saveCommand: config.saveCommand || 'save',
-            initialPosition: config.initialPosition || 0,
+            initialPosition: config.initialPosition || 100,
             travelTime: config.travelTime || 30000,
             debounceTime: config.debounceTime || 1000
         };
@@ -112,14 +112,14 @@ class WindowBlindsAccessory {
         try {
             this.log(`Setting blinds to position: ${value}%`);
             
-            // Set movement state
+            // Set movement state (0 = closed, 100 = open)
             this.isMoving = true;
-            this.movementDirection = value > state.getCurrentPosition() ? 'down' : 'up';
+            this.movementDirection = value > state.getCurrentPosition() ? 'up' : 'down';
             
             // Update position state characteristic to show loading
             this.updatePositionState();
             
-            // Use HomeKit position directly (0 = fully open, 100 = fully closed)
+            // Use reversed position system (0 = fully closed, 100 = fully open)
             await setPosition(value);
             
             // Clear movement state

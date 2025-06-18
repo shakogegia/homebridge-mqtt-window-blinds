@@ -1,10 +1,12 @@
 const { createCommands } = require("./constants");
 const state = require("./state");
 const { initializeMqtt, publishMessage } = require("./mqtt");
+const { debounce } = require("lodash");
 
 let commands = null;
 let isInitialized = false;
-let debounceTimers = {};
+let debouncedUp = null;
+let debouncedDown = null;
 let debounceTime = 1000; // Default 1 second
 
 function initializeBlinds(config) {
@@ -21,30 +23,19 @@ function initializeBlinds(config) {
     // Set debounce time from config
     debounceTime = config.debounceTime || 1000;
     
+    // Create debounced functions
+    debouncedUp = debounce(async () => {
+        await publishMessage(commands.UP);
+    }, debounceTime);
+    
+    debouncedDown = debounce(async () => {
+        await publishMessage(commands.DOWN);
+    }, debounceTime);
+    
     // Create commands using the full config
     commands = createCommands(config);
     
     isInitialized = true;
-}
-
-// Debounced function to prevent rapid command execution
-function debouncedPublish(command, commandName) {
-    return new Promise((resolve, reject) => {
-        // Clear existing timer for this command
-        if (debounceTimers[commandName]) {
-            clearTimeout(debounceTimers[commandName]);
-        }
-        
-        // Set new timer
-        debounceTimers[commandName] = setTimeout(async () => {
-            try {
-                await publishMessage(command);
-                resolve();
-            } catch (error) {
-                reject(error);
-            }
-        }, debounceTime);
-    });
 }
 
 async function open() {
@@ -52,7 +43,7 @@ async function open() {
         throw new Error('Blinds not initialized. Call initializeBlinds() first.');
     }
     console.log('Opening blinds completely (no stop command will be sent)');
-    await debouncedPublish(commands.UP, 'UP');
+    await debouncedUp();
 }
 
 async function close() {
@@ -60,7 +51,7 @@ async function close() {
         throw new Error('Blinds not initialized. Call initializeBlinds() first.');
     }
     console.log('Closing blinds completely (no stop command will be sent)');
-    await debouncedPublish(commands.DOWN, 'DOWN');
+    await debouncedDown();
 }
 
 async function stop() {
@@ -103,16 +94,18 @@ async function setPosition(position) {
     const travelTime = Math.abs(positionDifference) * (state.getTotalTravelTime() / 100);
     
     // Determine direction and command
-    const command = positionDifference > 0 ? commands.DOWN : commands.UP;
     const direction = positionDifference > 0 ? 'down' : 'up';
-    const commandName = positionDifference > 0 ? 'DOWN' : 'UP';
     
     console.log(`Moving window ${direction} from ${currentPosition}% to ${targetPosition}%`);
     console.log(`Travel time: ${travelTime}ms`);
     
     try {
         // Send the movement command with debouncing
-        await debouncedPublish(command, commandName);
+        if (positionDifference > 0) {
+            await debouncedDown();
+        } else {
+            await debouncedUp();
+        }
         
         // Wait for the calculated travel time
         await new Promise(resolve => setTimeout(resolve, travelTime));

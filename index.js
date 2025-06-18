@@ -13,6 +13,10 @@ class WindowBlindsAccessory {
         this.model = config.model || 'MQTT Blinds';
         this.serialNumber = config.serialNumber || 'BLINDS001';
         
+        // Track movement state for HomeKit
+        this.isMoving = false;
+        this.movementDirection = null;
+        
         // Validate required configuration
         this.validateConfig(config);
         
@@ -108,6 +112,13 @@ class WindowBlindsAccessory {
         try {
             this.log(`Setting blinds to position: ${value}%`);
             
+            // Set movement state
+            this.isMoving = true;
+            this.movementDirection = value > (100 - state.getCurrentPosition()) ? 'down' : 'up';
+            
+            // Update position state characteristic to show loading
+            this.updatePositionState();
+            
             // Convert HomeKit position (0-100) to our system
             // HomeKit: 0 = fully open, 100 = fully closed
             // Our system: 0 = fully closed, 100 = fully open
@@ -115,9 +126,22 @@ class WindowBlindsAccessory {
             
             await setPosition(targetPosition);
             
+            // Clear movement state
+            this.isMoving = false;
+            this.movementDirection = null;
+            
+            // Update position state characteristic
+            this.updatePositionState();
+            
             callback(null);
         } catch (error) {
             this.log.error(`Error setting target position: ${error.message}`);
+            
+            // Clear movement state on error
+            this.isMoving = false;
+            this.movementDirection = null;
+            this.updatePositionState();
+            
             callback(error);
         }
     }
@@ -137,9 +161,35 @@ class WindowBlindsAccessory {
     }
     
     getPositionState(callback) {
-        // For now, we'll return STOPPED as we don't track movement state
-        // You could enhance this by tracking movement state in your state.js
-        callback(null, Characteristic.PositionState.STOPPED);
+        if (this.isMoving) {
+            if (this.movementDirection === 'up') {
+                callback(null, Characteristic.PositionState.OPENING);
+            } else {
+                callback(null, Characteristic.PositionState.CLOSING);
+            }
+        } else {
+            callback(null, Characteristic.PositionState.STOPPED);
+        }
+    }
+    
+    updatePositionState() {
+        // Update the position state characteristic to reflect current movement
+        const windowCoveringService = this.getServices().find(service => 
+            service instanceof Service.WindowCovering
+        );
+        
+        if (windowCoveringService) {
+            const positionState = windowCoveringService.getCharacteristic(Characteristic.PositionState);
+            if (this.isMoving) {
+                if (this.movementDirection === 'up') {
+                    positionState.updateValue(Characteristic.PositionState.OPENING);
+                } else {
+                    positionState.updateValue(Characteristic.PositionState.CLOSING);
+                }
+            } else {
+                positionState.updateValue(Characteristic.PositionState.STOPPED);
+            }
+        }
     }
     
     async setHoldPosition(value, callback) {
@@ -147,6 +197,11 @@ class WindowBlindsAccessory {
             if (value) {
                 this.log('Stopping blinds movement');
                 await stop();
+                
+                // Clear movement state
+                this.isMoving = false;
+                this.movementDirection = null;
+                this.updatePositionState();
             }
             callback(null);
         } catch (error) {

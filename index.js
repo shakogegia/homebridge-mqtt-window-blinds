@@ -1,3 +1,4 @@
+const { debounce } = require('lodash');
 const { initializeBlinds, setPosition, open, close, stop } = require('./utils/blinds');
 const state = require('./utils/state');
 
@@ -95,8 +96,15 @@ class WindowBlindsAccessory {
         // Target Position (0-100, where 0 is fully closed, 100 is fully open)
         this.targetPositionCharacteristic = this.windowCoveringService
             .getCharacteristic(Characteristic.TargetPosition);
+        
+        // Create debounced function with proper context and config
+        const debounceTime = this.config.debounceTime || 1000;
+        this.debouncedSetTargetPosition = debounce((value, callback) => {
+            this.setTargetPosition(value, callback);
+        }, debounceTime);
+        
         this.targetPositionCharacteristic
-            .on('set', this.setTargetPosition.bind(this))
+            .on('set', this.debouncedSetTargetPosition.bind(this))
             .on('get', this.getTargetPosition.bind(this));
         
         // Current Position

@@ -4,13 +4,9 @@ const { initializeMqtt, publishMessage } = require("./mqtt");
 
 let commands = null;
 let isInitialized = false;
-let debounceTime = 1000; // Default 1 second
 let travelTimeUp = 30000; // Default 30 seconds for up
 let travelTimeDown = 30000; // Default 30 seconds for down
 
-// Debounce tracking variables
-let setPositionTimeout = null;
-let lastSetPositionCall = 0;
 
 function initializeBlinds(config) {
     if (isInitialized) {
@@ -60,27 +56,8 @@ async function stop() {
     await publishMessage(commands.STOP);
 }
 
-// Debounced setPosition function
-async function debouncedSetPosition(position) {
-    const now = Date.now();
-    lastSetPositionCall = now;
-    
-    // Clear existing timeout
-    if (setPositionTimeout) {
-        clearTimeout(setPositionTimeout);
-    }
-    
-    // Set new timeout
-    setPositionTimeout = setTimeout(async () => {
-        // Only execute if this is still the latest call
-        if (lastSetPositionCall === now) {
-            await executeSetPosition(position);
-        }
-    }, debounceTime);
-}
-
 // The actual position setting logic
-async function executeSetPosition(position) {
+async function setPosition(position) {
     if (position < 0 || position > 100) {
         throw new Error('Position must be between 0 and 100');
     }
@@ -99,7 +76,6 @@ async function executeSetPosition(position) {
     const currentPosition = state.getCurrentPosition();
     const positionDifference = targetPosition - currentPosition;
     
-    console.log(`Position difference: ${positionDifference}`, JSON.stringify(state));
 
     // Calculate travel time based on the percentage difference and direction
     const travelTime = Math.abs(positionDifference) * (targetPosition > currentPosition ? travelTimeUp : travelTimeDown) / 100;
@@ -112,7 +88,12 @@ async function executeSetPosition(position) {
     
     try {
         // Send the movement command immediately (no debounce)
-        if (direction === 'up') {
+
+        if (targetPosition === 100) {
+            await publishMessage(commands.UP);
+        } else if (targetPosition === 0) {
+            await publishMessage(commands.DOWN);
+        } else if (direction === 'up') {
             await publishMessage(commands.UP);
         } else {
             await publishMessage(commands.DOWN);
@@ -146,15 +127,6 @@ async function executeSetPosition(position) {
         }
         throw error;
     }
-}
-
-async function setPosition(position) {
-    if (!isInitialized) {
-        throw new Error('Blinds not initialized. Call initializeBlinds() first.');
-    }
-
-    // Use debounced setPosition to prevent multiple executions
-    await debouncedSetPosition(position);
 }
 
 module.exports = { initializeBlinds, open, close, stop, setPosition };
